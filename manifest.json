@@ -1,0 +1,10 @@
+{
+  "id": "ariadne",
+  "name": "Ariadne",
+  "version": "0.1.0",
+  "minAppVersion": "1.4.0",
+  "description": "Evidenzbasiertes Journaling: Freigabe-Registry, Analyse-Verankerung, Reflexionspfad. Alles lokal gegen Ollama.",
+  "author": "Friedrich Meixner",
+  "authorUrl": "https://github.com/FMeixner",
+  "isDesktopOnly": false
+}

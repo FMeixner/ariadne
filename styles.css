@@ -1,0 +1,5 @@
+/* Ariadne - der Faden im Labyrinth */
+.callout[data-callout="ariadne"] {
+  --callout-color: 124, 92, 250;
+  --callout-icon: lucide-git-branch;
+}

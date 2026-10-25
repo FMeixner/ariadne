@@ -1,0 +1,21 @@
+{
+  "name": "ariadne",
+  "version": "0.1.0",
+  "description": "Ariadne - evidenzbasiertes Journaling fuer Obsidian",
+  "main": "main.js",
+  "scripts": {
+    "dev": "node esbuild.config.mjs",
+    "build": "node esbuild.config.mjs production",
+    "check": "tsc -noEmit -skipLibCheck"
+  },
+  "author": "Friedrich Meixner",
+  "license": "AGPL-3.0",
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "builtin-modules": "^4.0.0",
+    "esbuild": "^0.24.0",
+    "obsidian": "latest",
+    "tslib": "2.8.0",
+    "typescript": "5.6.2"
+  }
+}
