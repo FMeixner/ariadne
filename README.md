@@ -1,16 +1,17 @@
 # Ariadne
 
-Evidenzbasiertes Journaling als Obsidian-Plugin. Plugin First: Alle Nutzeraktionen laufen ueber das Plugin, keine vault-seitigen Vorlagen-Workarounds mehr. Alles laeuft lokal gegen Ollama (oder einen anderen OpenAI-kompatiblen Endpunkt). Der Vault ist die alleinige Wahrheit. Ariadne ist Werkzeug, nicht Therapie.
+Evidenzbasiertes Journaling als Obsidian-Plugin. Plugin First: Alle Nutzeraktionen laufen ueber das Plugin, keine vault-seitigen Vorlagen-Workarounds. Alles laeuft lokal gegen Ollama (oder einen anderen OpenAI-kompatiblen Endpunkt). Der Vault ist die alleinige Wahrheit. Ariadne ist Werkzeug, nicht Therapie.
 
-## Features (v0.2)
+## Features (v0.3)
 
-- Ribbon-Button (Faden-Symbol) mit Menue: Neuer Check-in, Markierung, Verankerung, Reflexion, Chat-Platzhalter
-- Abend-Check-in: Modal mit vier Slidern (Valenz, Aktivierung, Belastung, Koerper, jeweils 0 bis 10), Kontext-Kacheln (Lehre, Forschung, Admin, Sport, Sozial, Familie, Allein) und Ausnahme-Ereignis-Schalter. Legt eintraege/JJJJ-MM-TT.md als journal an und gibt ihn sofort frei. Kein Meta Bind, keine manuellen Templates noetig.
-- Editor-Kontextmenue: markieren, Abfrage verankern, Reflektieren
-- Ariadne markieren: Notiz per Frontmatter-Flag fuer Auswertungen freigeben, mit Typ-Auswahl (journal, impuls, order-log, ttrpg, meeting, reflexion)
-- Abfrage verankern: Analyse der aktuellen Notiz durch das lokale Modell, Ergebnis als versionierter Callout in der Notiz. Optional fliesst der Kontext freigegebener Notizen desselben Vaults ein.
-- Reflektieren: fortschreitender Pfad evidenzbasierter Schreibuebungen (Pennebaker-Episode in drei Schritten, Nuclear Episodes)
-- Chat mit dem lokalen Modell: als Menue-Eintrag sichtbar, Funktion folgt als M4. Bis dahin: Copilot for Obsidian mit dem Sparring-Prompt.
+- Ribbon-Button (Faden-Symbol) mit Menue: Neuer Journal-Eintrag, Markierung, Analyse, Reflexion, Chat-Platzhalter
+- Neuer Journal-Eintrag: Modal mit optionalem Titel, vier Slidern (Valenz, Aktivierung, Belastung, Koerper, 0 bis 10), Kontext-Kacheln (Lehre, Forschung, Admin, Sport, Sozial, Familie, Allein) und Ausnahme-Schalter. Legt eintraege/JJJJ-MM-TT-HHmm.md als journal an (Datum und Uhrzeit), gibt ihn sofort frei und oeffnet ihn zum Schreiben. Mehrere Eintraege pro Tag sind erlaubt. Ordner werden automatisch angelegt.
+- Ariadne markieren: Notiz per Frontmatter-Flag freigeben, mit Typ-Auswahl als Klartext-Liste mit Beschreibung (journal, impuls, order-log, ttrpg, meeting, hobby, reflexion)
+- Analyse verankern: Analyse der aktuellen Notiz durch das lokale Modell, Ergebnis als versionierter Callout. Optional fliesst der Kontext freigegebener Notizen (inklusive Slider-Werten) ein. Braucht den Endpunkt.
+- Reflektieren: fortschreitender Pfad evidenzbasierter Schreibuebungen (Pennebaker-Episode in drei Schritten, Nuclear Episodes). Ohne Modell aufrufbar.
+- Chat mit dem lokalen Modell: als Menue-Eintrag sichtbar, Funktion folgt als M4.
+
+Nur zwei Pfade rufen ein Modell auf: Analyse verankern und (spaeter) der Chat. Alles andere ist rein lokal.
 
 ## Installation (BRAT)
 
@@ -45,9 +46,9 @@ Freigabe und Typ pro Notiz:
     ariadne: true
     ---
 
-Typen: journal, impuls, order-log, ttrpg, meeting, reflexion. Nur Notizen mit ariadne: true im selben Vault fließen in Analysen ein.
+Typen mit Klartext: journal (Tages- und Abendreflexion mit Slider-Abfrage), impuls (situativer Eintrag unterwegs), meeting (Uni- oder Dienstsitzung), order-log (Log fuer das Order-Projekt), ttrpg (Rollenspiel), hobby (andere Freizeit), reflexion (gefuhrte Schreibpfade). Nur Notizen mit ariadne: true im selben Vault fließen in Analysen ein.
 
-Check-ins tragen zusaetzlich: valence, arousal, belastung, koerper (0 bis 10), kontexte (Liste, z.B. [Lehre, Sport]), ausnahme (true/false) und zustand: gesprochen.
+Journal-Eintraege tragen zusaetzlich: datum, uhrzeit, valence, arousal, belastung, koerper (0 bis 10), kontexte (Liste, z.B. [Lehre, Sport]), ausnahme (true/false) und zustand: gesprochen.
 
 ## Die Mauer: Trennung privat und Uni
 
@@ -63,10 +64,12 @@ Zwei Protokolle: die Pennebaker-Episode (drei Schritte: Fakten, Gefuehle und Koe
 - Freigegebene Notizen verlassen das Geraet nur in Richtung dieses Endpunkts.
 - Krisensignale: Vor jeder Analyse prueft Ariadne den Text gegen eine Liste akuter Begriffe. Bei Treffer bricht die Analyse ab und es wird ein Hinweisblock mit der Telefonseelsorge (0800 111 0 111, 0800 111 0 222) verankert. Im akuten Notfall gilt 112.
 
-## Manuelle Pruefliste (v0.2)
+## Manuelle Pruefliste (v0.3)
 
 - [ ] Ribbon oeffnet das Menue
-- [ ] Der Check-in-Modal legt eintraege/YYYY-MM-DD.md mit Slidern, Kontexten und ariadne: true an
+- [ ] Der Journal-Eintrag legt eintraege/YYYY-MM-DD-HHmm.md an, auch wenn der Ordner noch fehlte
+- [ ] Mehrere Journal-Eintraege am selben Tag sind moeglich
+- [ ] Die Typ-Auswahl zeigt Klartext-Beschreibungen
 - [ ] Markierung setzt ariadne: true und typ
 - [ ] Analyse verankert den Callout; ein erneuter Lauf ersetzt ihn statt zu duplizieren
 - [ ] Der Kontext enthaelt nur freigegebene Notizen desselben Vaults

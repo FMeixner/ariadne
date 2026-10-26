@@ -20,7 +20,17 @@ const DEFAULT_SETTINGS: AriadneSettings = {
   schritt: 0
 };
 
-const TYPEN: string[] = ["journal", "impuls", "order-log", "ttrpg", "meeting", "reflexion"];
+const TYPEN: string[] = ["journal", "impuls", "order-log", "ttrpg", "meeting", "hobby", "reflexion"];
+
+const TYP_TEXT: Record<string, string> = {
+  "journal": "Tages- und Abendreflexion mit Slider-Abfrage",
+  "impuls": "Situativer Eintrag unterwegs, ohne Slider",
+  "meeting": "Uni- oder Dienstsitzung mit Recap",
+  "order-log": "Log fuer das Order-Projekt",
+  "ttrpg": "Rollenspiel: Sessions, Welten, Figuren",
+  "hobby": "Andere Freizeit und Erholung",
+  "reflexion": "Gefuehrte Schreibpfade (Pennebaker, Nuclear Episodes)"
+};
 
 const KONTEXTE: string[] = ["Lehre", "Forschung", "Admin", "Sport", "Sozial", "Familie", "Allein"];
 
@@ -121,7 +131,8 @@ const PROTOKOLLE: ReflexionsProtokoll[] = [
   }
 ];
 
-interface CheckInDaten {
+interface JournalDaten {
+  titel: string;
   valence: number;
   arousal: number;
   belastung: number;
@@ -138,17 +149,17 @@ class TypModal extends Modal {
   onOpen() {
     this.contentEl.createEl("h3", { text: "Notiz fuer Ariadne freigeben" });
     this.contentEl.createEl("p", { text: "Welcher Art ist diese Notiz? Der Typ steuert die spaetere Auswertung." });
-    const zeile = new Setting(this.contentEl);
     for (const t of TYPEN) {
-      zeile.addButton((b) => b.setButtonText(t).onClick(() => { this.onChoose(t); this.close(); }));
+      new Setting(this.contentEl).setName(t).setDesc(TYP_TEXT[t])
+        .addButton((b) => b.setButtonText("Waehlen").onClick(() => { this.onChoose(t); this.close(); }));
     }
   }
 }
 
-class CheckInModal extends Modal {
-  private daten: CheckInDaten = { valence: 5, arousal: 5, belastung: 5, koerper: 5, kontexte: [], ausnahme: false };
+class JournalModal extends Modal {
+  private daten: JournalDaten = { titel: "", valence: 5, arousal: 5, belastung: 5, koerper: 5, kontexte: [], ausnahme: false };
 
-  constructor(app: App, private onFertig: (d: CheckInDaten) => void) {
+  constructor(app: App, private onFertig: (d: JournalDaten) => void) {
     super(app);
   }
 
@@ -170,8 +181,9 @@ class CheckInModal extends Modal {
 
   onOpen() {
     const c = this.contentEl;
-    c.createEl("h3", { text: "Abend-Check-in" });
-    c.createEl("p", { text: "Vier Werte von 0 bis 10, dann die Kontexte des Tages. Der Eintrag wird unter eintraege/ als journal angelegt und fuer Auswertungen freigegeben." });
+    c.createEl("h3", { text: "Journal-Eintrag" });
+    c.createEl("p", { text: "Optional ein Titel, dann vier Werte von 0 bis 10 und die Kontexte. Der Eintrag wird unter eintraege/ als journal angelegt, sofort freigegeben und zum Schreiben geoeffnet. Mehrere Eintraege pro Tag sind erlaubt." });
+    new Setting(c).setName("Titel (optional)").addText((t) => t.setPlaceholder("z.B. Nach der Lehre").onChange((v) => { this.daten.titel = v; }));
     this.baueSlider(c, "Valenz", "0 unangenehm, 10 angenehm", (n) => { this.daten.valence = n; });
     this.baueSlider(c, "Aktivierung", "0 ruhig, 10 aktiviert", (n) => { this.daten.arousal = n; });
     this.baueSlider(c, "Belastung", "0 entspannt, 10 angespannt", (n) => { this.daten.belastung = n; });
@@ -187,7 +199,7 @@ class CheckInModal extends Modal {
         else { this.daten.kontexte.splice(pos, 1); b.removeClass("ariadne-kachel-aktiv"); }
       });
     }
-    new Setting(c).setName("Ausnahme-Ereignis").setDesc("Etwas Aussergewoehnliches ist heute passiert.")
+    new Setting(c).setName("Ausnahme-Ereignis").setDesc("Etwas Aussergewoehnliches ist passiert.")
       .addToggle((t) => t.setValue(false).onChange((v) => { this.daten.ausnahme = v; }));
     new Setting(c)
       .addButton((b) => b.setButtonText("Eintrag anlegen").setCta().onClick(() => { this.onFertig(this.daten); this.close(); }))
@@ -255,14 +267,14 @@ export default class AriadnePlugin extends Plugin {
   async onload() {
     this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData())
     this.addRibbonIcon("git-branch", "Ariadne", (evt: MouseEvent) => this.oeffneMenue(evt));
-    this.addCommand({ id: "ariadne-checkin", name: "Ariadne: Neuer Check-in (Abend)", callback: () => this.oeffneCheckIn() });
+    this.addCommand({ id: "ariadne-journal", name: "Ariadne: Neuer Journal-Eintrag", callback: () => this.oeffneJournalEintrag() });
     this.addCommand({ id: "ariadne-markierung", name: "Ariadne: Markierung umschalten", callback: () => this.toggleMarkierung() });
-    this.addCommand({ id: "ariadne-analyse", name: "Ariadne: Abfrage in dieser Notiz verankern", editorCallback: (editor: Editor) => this.verankern(editor) });
+    this.addCommand({ id: "ariadne-analyse", name: "Ariadne: Analyse in dieser Notiz verankern", editorCallback: (editor: Editor) => this.verankern(editor) });
     this.addCommand({ id: "ariadne-reflektieren", name: "Ariadne: Reflektieren - naechster Schritt", callback: () => this.reflektieren() });
     this.registerEvent(this.app.workspace.on("editor-menu", (menu: Menu) => {
       menu.addSeparator();
       menu.addItem((i) => i.setTitle("Ariadne: markieren").setIcon("bookmark").onClick(() => this.toggleMarkierung()));
-      menu.addItem((i) => i.setTitle("Ariadne: Abfrage verankern").setIcon("sparkles").onClick(() => {
+      menu.addItem((i) => i.setTitle("Ariadne: Analyse verankern").setIcon("sparkles").onClick(() => {
         const view = this.app.workspace.getActiveViewOfType(MarkdownView);
         if (view) { this.verankern(view.editor); }
       }));
@@ -277,10 +289,10 @@ export default class AriadnePlugin extends Plugin {
 
   private oeffneMenue(evt: MouseEvent) {
     const menu = new Menu();
-    menu.addItem((i) => i.setTitle("Neuer Check-in (Abfrage)").setIcon("activity").onClick(() => this.oeffneCheckIn()));
+    menu.addItem((i) => i.setTitle("Neuer Journal-Eintrag (Slider-Abfrage)").setIcon("activity").onClick(() => this.oeffneJournalEintrag()));
     menu.addSeparator();
     menu.addItem((i) => i.setTitle("Markierung umschalten").setIcon("bookmark").onClick(() => this.toggleMarkierung()));
-    menu.addItem((i) => i.setTitle("Abfrage in dieser Notiz verankern").setIcon("sparkles").onClick(() => {
+    menu.addItem((i) => i.setTitle("Analyse in dieser Notiz verankern").setIcon("sparkles").onClick(() => {
       const view = this.app.workspace.getActiveViewOfType(MarkdownView);
       if (view) { this.verankern(view.editor); } else { new Notice("Ariadne: Keine Notiz im Fokus."); }
     }));
@@ -290,17 +302,25 @@ export default class AriadnePlugin extends Plugin {
     menu.showAtMouseEvent(evt);
   }
 
-  oeffneCheckIn() {
-    new CheckInModal(this.app, async (d: CheckInDaten) => { await this.erstelleCheckIn(d); }).open();
+  oeffneJournalEintrag() {
+    new JournalModal(this.app, async (d: JournalDaten) => { await this.erstelleJournalEintrag(d); }).open();
   }
 
-  async erstelleCheckIn(d: CheckInDaten) {
-    const iso = moment().format("YYYY-MM-DD");
-    const pfad = "eintraege/" + iso + ".md";
-    if (await this.app.vault.adapter.exists(pfad)) {
-      new Notice("Ariadne: Fuer heute existiert schon ein Check-in.");
-      return;
+  private async sichererOrdner(pfad: string) {
+    if (!(await this.app.vault.adapter.exists(pfad))) {
+      try {
+        await this.app.vault.createFolder(pfad);
+      } catch (e) {
+        // Ordner kann schon existieren, ignorieren.
+      }
     }
+  }
+
+  async erstelleJournalEintrag(d: JournalDaten) {
+    const iso = moment().format("YYYY-MM-DD");
+    const zeit = moment().format("HH:mm");
+    const pfad = "eintraege/" + moment().format("YYYY-MM-DD-HHmm") + ".md";
+    const titel = d.titel.trim().length > 0 ? d.titel.trim() : iso + " " + zeit;
     const kontexte = d.kontexte.length === 0 ? "[]" : "[" + d.kontexte.join(", ") + "]";
     const baseline = [
       "Valenz " + String(d.valence) + "/10 (0 unangenehm, 10 angenehm)",
@@ -313,6 +333,7 @@ export default class AriadnePlugin extends Plugin {
       "typ: journal",
       "ariadne: true",
       "datum: " + iso,
+      "uhrzeit: " + zeit,
       "zustand: gesprochen",
       "valence: " + String(d.valence),
       "arousal: " + String(d.arousal),
@@ -321,6 +342,8 @@ export default class AriadnePlugin extends Plugin {
       "kontexte: " + kontexte,
       "ausnahme: " + (d.ausnahme ? "true" : "false"),
       "---",
+      "",
+      "# " + titel,
       "",
       "## Baseline",
       "",
@@ -335,12 +358,13 @@ export default class AriadnePlugin extends Plugin {
       "Gefuehle: Was hat es mit mir gemacht?",
       ""
     ];
+    await this.sichererOrdner("eintraege");
     try {
       const f = await this.app.vault.create(pfad, zeilen.join("\n"));
       await this.app.workspace.getLeaf(true).openFile(f);
-      new Notice("Ariadne: Check-in angelegt und freigegeben.");
+      new Notice("Ariadne: Journal-Eintrag angelegt und freigegeben.");
     } catch (e) {
-      new Notice("Ariadne: Konnte den Check-in nicht anlegen.");
+      new Notice("Ariadne: Konnte den Journal-Eintrag nicht anlegen.");
     }
   }
 
@@ -514,6 +538,7 @@ export default class AriadnePlugin extends Plugin {
       "(15 bis 20 Minuten, ohne Pause. Tippen oder diktieren - beides zaehlt.)",
       ""
     ]);
+    await this.sichererOrdner("reflexionen");
     try {
       const f = await this.app.vault.create(pfad, zeilen.join("\n"));
       await this.app.workspace.getLeaf(true).openFile(f);
