@@ -3,3 +3,32 @@
   --callout-color: 124, 92, 250;
   --callout-icon: lucide-git-branch;
 }
+
+/* Check-in-Modal */
+.ariadne-slider-zeile {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  margin-bottom: 0.75em;
+}
+.ariadne-slider-zeile input[type="range"] {
+  flex: 1;
+}
+.ariadne-slider-zeile span {
+  min-width: 2em;
+  text-align: right;
+}
+.ariadne-kacheln {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4em;
+  margin-bottom: 0.75em;
+}
+button.ariadne-kachel {
+  border-radius: 12px;
+  padding: 0.3em 0.8em;
+}
+button.ariadne-kachel-aktiv {
+  background-color: rgba(124, 92, 250, 0.25);
+  border-color: rgb(124, 92, 250);
+}
