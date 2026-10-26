@@ -1,4 +1,4 @@
-import { App, Editor, MarkdownView, Menu, Modal, moment, Notice, Plugin, PluginSettingTab, requestUrl, Setting, TFile } from "obsidian";
+import { App, MarkdownView, Menu, Modal, moment, Notice, Plugin, PluginSettingTab, Setting, TFile } from "obsidian";
 
 interface AriadneSettings {
   endpoint: string;
@@ -23,8 +23,8 @@ const DEFAULT_SETTINGS: AriadneSettings = {
 const TYPEN: string[] = ["journal", "impuls", "order-log", "ttrpg", "meeting", "hobby", "reflexion"];
 
 const TYP_TEXT: Record<string, string> = {
-  "journal": "Tages- und Abendreflexion mit Slider-Abfrage",
-  "impuls": "Situativer Eintrag unterwegs, ohne Slider",
+  "journal": "Tages- und Abendreflexion mit Stimmungserfassung",
+  "impuls": "Situativer Eintrag unterwegs, ohne Stimmungserfassung",
   "meeting": "Uni- oder Dienstsitzung mit Recap",
   "order-log": "Log fuer das Order-Projekt",
   "ttrpg": "Rollenspiel: Sessions, Welten, Figuren",
@@ -36,7 +36,7 @@ const KONTEXTE: string[] = ["Lehre", "Forschung", "Admin", "Sport", "Sozial", "F
 
 const MARKER = "%%ariadne-analyse%%";
 
-// KRISTERME: Nur ergaenzen, niemals schwaechen (siehe AGENTS.md).
+// KRISTERME: Nur ergaenzen, niemals schwaechen (siehe AGENTS.md). Der Chat (M4) prueft damit jede Anfrage.
 const KRISTERME: string[] = [
   "suizid",
   "suizidgedanke",
@@ -52,29 +52,6 @@ const KRISTERME: string[] = [
   "ohnmacht",
   "panikattacke"
 ];
-
-const ANALYSE_PROMPT = [
-  "Du bist der Sparringspartner in einem evidenzbasierten Journaling-System namens Ariadne.",
-  "Grundhaltung: kollegial, praezise, hart in der Sache, herzlich in der Form. Du bist kein Therapeut.",
-  "",
-  "Aufgabe: Analysiere die AKTUELLE NOTIZ. Der KONTEXT freigegebener Notizen ist Hintergrund, nicht Hauptobjekt.",
-  "",
-  "Regeln:",
-  "1. Nur belegbare Beobachtungen: verweise auf konkrete Stellen der Notiz (Zitate, Zahlen, Frontmatter-Werte).",
-  "2. Suche aktiv nach Gegenbeispielen, bevor du ein Muster behauptest (Bestaetigungsfehler-Bremse).",
-  "3. Wenn Frontmatter-Werte vorhanden sind (Slider, typ): pruefe, ob sie zum Ton des Textes passen. Diskrepanzen benennst du direkt.",
-  "4. Sprich Fakten UND Gefuehle an, nie nur eines von beidem.",
-  "5. Keine Diagnosen, keine Therapievorschlaege, keine Selbstoptimierungs-Rhetorik.",
-  "6. Bei akuten Krisensignalen in der Notiz: unterbrich die Analyse, benenne klar und respektvoll die Grenze und verweise auf Telefonseelsorge (0800 111 0 111, 0800 111 0 222) und im Notfall 112.",
-  "7. Maximal drei Beobachtungen oder Muster-Hypothesen, dann genau eine offene Frage.",
-  "",
-  "Struktur deiner Antwort:",
-  "Beobachtungen: (kurze Liste mit Belegen)",
-  "Auffaellig: (maximal zwei Hypothesen, jede mit Gegenbeispiel-Pruefung)",
-  "Frage: (genau eine, zum Weiterdenken)",
-  "",
-  "Antworte auf Deutsch und bleibe unter 250 Woertern."
-].join("\n");
 
 interface ReflexionsSchritt {
   titel: string;
@@ -147,8 +124,8 @@ class TypModal extends Modal {
   }
 
   onOpen() {
-    this.contentEl.createEl("h3", { text: "Notiz fuer Ariadne freigeben" });
-    this.contentEl.createEl("p", { text: "Welcher Art ist diese Notiz? Der Typ steuert die spaetere Auswertung." });
+    this.contentEl.createEl("h3", { text: "Notiz taggen" });
+    this.contentEl.createEl("p", { text: "Welcher Art ist diese Notiz? Der Typ ordnet sie fuer den spaeteren Chat ein." });
     for (const t of TYPEN) {
       new Setting(this.contentEl).setName(t).setDesc(TYP_TEXT[t])
         .addButton((b) => b.setButtonText("Waehlen").onClick(() => { this.onChoose(t); this.close(); }));
@@ -181,8 +158,8 @@ class JournalModal extends Modal {
 
   onOpen() {
     const c = this.contentEl;
-    c.createEl("h3", { text: "Journal-Eintrag" });
-    c.createEl("p", { text: "Optional ein Titel, dann vier Werte von 0 bis 10 und die Kontexte. Der Eintrag wird unter eintraege/ als journal angelegt, sofort freigegeben und zum Schreiben geoeffnet. Mehrere Eintraege pro Tag sind erlaubt." });
+    c.createEl("h3", { text: "Neuer Journal-Eintrag" });
+    c.createEl("p", { text: "Stimmung erfassen, Kontexte waehlen, dann schreiben. Der Eintrag landet unter eintraege/, ist sofort getaggt und offen zum Diktieren. Mehrere pro Tag sind erlaubt." });
     new Setting(c).setName("Titel (optional)").addText((t) => t.setPlaceholder("z.B. Nach der Lehre").onChange((v) => { this.daten.titel = v; }));
     this.baueSlider(c, "Valenz", "0 unangenehm, 10 angenehm", (n) => { this.daten.valence = n; });
     this.baueSlider(c, "Aktivierung", "0 ruhig, 10 aktiviert", (n) => { this.daten.arousal = n; });
@@ -235,16 +212,16 @@ class AriadneSettingTab extends PluginSettingTab {
     const c = this.containerEl;
     c.empty();
     c.createEl("h2", { text: "Ariadne" });
-    new Setting(c).setName("Endpunkt").setDesc("OpenAI-kompatibler lokaler Endpunkt. Standard: Ollama auf diesem Geraet.")
+    new Setting(c).setName("Endpunkt").setDesc("OpenAI-kompatibler Endpunkt, Standard Ollama. Wird erst mit dem Chat (M4) gebraucht.")
       .addText((t) => t.setPlaceholder("http://127.0.0.1:11434").setValue(this.plugin.settings.endpoint)
         .onChange(async (v) => { this.plugin.settings.endpoint = v.trim(); await this.plugin.saveSettings(); }));
-    new Setting(c).setName("Modell").setDesc("z.B. llama3.2, mistral-small")
+    new Setting(c).setName("Modell").setDesc("z.B. llama3.2, mistral-small. Wird erst mit dem Chat (M4) gebraucht.")
       .addText((t) => t.setValue(this.plugin.settings.model)
         .onChange(async (v) => { this.plugin.settings.model = v.trim(); await this.plugin.saveSettings(); }));
     new Setting(c).setName("Temperatur")
       .addText((t) => t.setValue(String(this.plugin.settings.temperature))
         .onChange(async (v) => { const n = parseFloat(v.replace(",", ".")); this.plugin.settings.temperature = isNaN(n) ? 0.4 : n; await this.plugin.saveSettings(); }));
-    new Setting(c).setName("Kontext freigegebener Notizen").setDesc("Bei jeder Analyse: Kontext aus freigegebenen Notizen desselben Vaults einbeziehen.")
+    new Setting(c).setName("Getaggte Notizen als Chat-Kontext").setDesc("Ab M4: getaggte Notizen desselben Vaults fliesen in den Chat ein.")
       .addToggle((t) => t.setValue(this.plugin.settings.kontextEinbeziehen)
         .onChange(async (v) => { this.plugin.settings.kontextEinbeziehen = v; await this.plugin.saveSettings(); }));
     new Setting(c).setName("Anzahl Kontextnotizen")
@@ -257,7 +234,7 @@ class AriadneSettingTab extends PluginSettingTab {
         .onChange(async (v) => { this.plugin.settings.protokoll = v; this.plugin.settings.schritt = 0; await this.plugin.saveSettings(); this.display(); });
     });
     new Setting(c).setName("Aktueller Schritt").addText((t) => t.setValue(String(this.plugin.settings.schritt + 1)).setDisabled(true));
-    new Setting(c).setName("Krisenweiterleitung").setDesc("Bei Krisensignalen bricht jede Ariadne-Analyse ab. Telefonseelsorge: 0800 111 0 111 oder 0800 111 0 222. Im akuten Notfall: 112.");
+    new Setting(c).setName("Krisenweiterleitung").setDesc("Der Chat (M4) prueft Anfragen auf Krisensignale. Telefonseelsorge: 0800 111 0 111 oder 0800 111 0 222. Im akuten Notfall: 112.");
   }
 }
 
@@ -267,17 +244,12 @@ export default class AriadnePlugin extends Plugin {
   async onload() {
     this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData())
     this.addRibbonIcon("git-branch", "Ariadne", (evt: MouseEvent) => this.oeffneMenue(evt));
-    this.addCommand({ id: "ariadne-journal", name: "Ariadne: Neuer Journal-Eintrag", callback: () => this.oeffneJournalEintrag() });
-    this.addCommand({ id: "ariadne-markierung", name: "Ariadne: Markierung umschalten", callback: () => this.toggleMarkierung() });
-    this.addCommand({ id: "ariadne-analyse", name: "Ariadne: Analyse in dieser Notiz verankern", editorCallback: (editor: Editor) => this.verankern(editor) });
+    this.addCommand({ id: "ariadne-journal", name: "Ariadne: Neuer Journal-Eintrag mit Stimmungserfassung", callback: () => this.oeffneJournalEintrag() });
+    this.addCommand({ id: "ariadne-markierung", name: "Ariadne: Notiz taggen", callback: () => this.toggleMarkierung() });
     this.addCommand({ id: "ariadne-reflektieren", name: "Ariadne: Reflektieren - naechster Schritt", callback: () => this.reflektieren() });
     this.registerEvent(this.app.workspace.on("editor-menu", (menu: Menu) => {
       menu.addSeparator();
-      menu.addItem((i) => i.setTitle("Ariadne: markieren").setIcon("bookmark").onClick(() => this.toggleMarkierung()));
-      menu.addItem((i) => i.setTitle("Ariadne: Analyse verankern").setIcon("sparkles").onClick(() => {
-        const view = this.app.workspace.getActiveViewOfType(MarkdownView);
-        if (view) { this.verankern(view.editor); }
-      }));
+      menu.addItem((i) => i.setTitle("Ariadne: taggen").setIcon("bookmark").onClick(() => this.toggleMarkierung()));
       menu.addItem((i) => i.setTitle("Ariadne: Reflektieren").setIcon("footprints").onClick(() => this.reflektieren()));
     }));
     this.addSettingTab(new AriadneSettingTab(this.app, this));
@@ -289,16 +261,12 @@ export default class AriadnePlugin extends Plugin {
 
   private oeffneMenue(evt: MouseEvent) {
     const menu = new Menu();
-    menu.addItem((i) => i.setTitle("Neuer Journal-Eintrag (Slider-Abfrage)").setIcon("activity").onClick(() => this.oeffneJournalEintrag()));
+    menu.addItem((i) => i.setTitle("Neuer Journal-Eintrag mit Stimmungserfassung").setIcon("activity").onClick(() => this.oeffneJournalEintrag()));
     menu.addSeparator();
-    menu.addItem((i) => i.setTitle("Markierung umschalten").setIcon("bookmark").onClick(() => this.toggleMarkierung()));
-    menu.addItem((i) => i.setTitle("Analyse in dieser Notiz verankern").setIcon("sparkles").onClick(() => {
-      const view = this.app.workspace.getActiveViewOfType(MarkdownView);
-      if (view) { this.verankern(view.editor); } else { new Notice("Ariadne: Keine Notiz im Fokus."); }
-    }));
+    menu.addItem((i) => i.setTitle("Notiz taggen").setIcon("bookmark").onClick(() => this.toggleMarkierung()));
     menu.addItem((i) => i.setTitle("Reflektieren - naechster Schritt").setIcon("footprints").onClick(() => this.reflektieren()));
     menu.addSeparator();
-    menu.addItem((i) => i.setTitle("Chat mit dem lokalen Modell (folgt)").setIcon("message-circle").onClick(() => new Notice("Ariadne: Der Chat folgt als M4. Bis dahin: Copilot for Obsidian mit dem Sparring-Prompt.")));
+    menu.addItem((i) => i.setTitle("Mit Ariadne sprechen (folgt)").setIcon("message-circle").onClick(() => new Notice("Ariadne: Der Chat ueber alle getaggten Notizen folgt als M4. Fragen wie 'Welche Muster deckst du auf?' oder 'Was hat Kraft gegeben?' werden dann moeglich.")));
     menu.showAtMouseEvent(evt);
   }
 
@@ -362,7 +330,7 @@ export default class AriadnePlugin extends Plugin {
     try {
       const f = await this.app.vault.create(pfad, zeilen.join("\n"));
       await this.app.workspace.getLeaf(true).openFile(f);
-      new Notice("Ariadne: Journal-Eintrag angelegt und freigegeben.");
+      new Notice("Ariadne: Journal-Eintrag angelegt und getaggt.");
     } catch (e) {
       new Notice("Ariadne: Konnte den Journal-Eintrag nicht anlegen.");
     }
@@ -381,129 +349,18 @@ export default class AriadnePlugin extends Plugin {
     const fm = this.frontmatterVon(file);
     if (fm && fm["ariadne"] === true) {
       await this.app.fileManager.processFrontMatter(file, (f: any) => { f["ariadne"] = false; });
-      new Notice("Ariadne: Markierung entfernt.");
+      new Notice("Ariadne: Tag entfernt.");
       return;
     }
     const typ = fm ? fm["typ"] : null;
     if (typ) {
       await this.app.fileManager.processFrontMatter(file, (f: any) => { f["ariadne"] = true; });
-      new Notice("Ariadne: Notiz freigegeben (typ: " + String(typ) + ").");
+      new Notice("Ariadne: Notiz getaggt (typ: " + String(typ) + ").");
     } else {
       new TypModal(this.app, async (t: string) => {
         await this.app.fileManager.processFrontMatter(file, (f: any) => { f["ariadne"] = true; f["typ"] = t; });
-        new Notice("Ariadne: Notiz freigegeben als " + t + ".");
+        new Notice("Ariadne: Notiz getaggt als " + t + ".");
       }).open();
-    }
-  }
-
-  private freigegebeneDateien(): TFile[] {
-    return this.app.vault.getMarkdownFiles().filter((f) => {
-      const fm = this.frontmatterVon(f);
-      return fm !== null && fm["ariadne"] === true;
-    });
-  }
-
-  private async kontextBilden(): Promise<string> {
-    const dateien = this.freigegebeneDateien()
-      .sort((a, b) => b.stat.mtime - a.stat.mtime)
-      .slice(0, this.settings.kontextAnzahl);
-    const teile: string[] = [];
-    for (const d of dateien) {
-      const fm = this.frontmatterVon(d);
-      const typ = fm && fm["typ"] ? String(fm["typ"]) : "ohne-typ";
-      let text = await this.app.vault.read(d);
-      if (text.length > 1200) { text = text.slice(0, 1200) + " ..."; }
-      teile.push("--- Notiz: " + d.basename + " (typ: " + typ + ") ---");
-      teile.push(text);
-    }
-    return teile.join("\n\n");
-  }
-
-  private krisencheck(text: string): boolean {
-    const t = text.toLowerCase();
-    return KRISTERME.some((k) => t.includes(k));
-  }
-
-  private async ollamaChat(prompt: string): Promise<string> {
-    const url = this.settings.endpoint + "/v1/chat/completions";
-    const body = JSON.stringify({ model: this.settings.model, messages: [{ role: "user", content: prompt }], temperature: this.settings.temperature, stream: false });
-    const res = await requestUrl({ url: url, method: "POST", headers: { "Content-Type": "application/json" }, body: body, throw: false });
-    if (res.status >= 400) { throw new Error("HTTP " + res.status + " von " + url); }
-    const data = res.json;
-    if (data && data.choices && data.choices.length > 0 && data.choices[0].message && data.choices[0].message.content) {
-      return String(data.choices[0].message.content);
-    }
-    throw new Error("Ungueltige Antwort vom Endpunkt.");
-  }
-
-  private baueBlock(antwort: string): string {
-    const zeilen = antwort.split("\n").map((l: string) => l.trim().length > 0 ? "> " + l.trim() : ">");
-    const kopf: string[] = [
-      MARKER,
-      "> [!ariadne] Ariadne-Analyse",
-      "> Erstellt: " + moment().format("YYYY-MM-DD") + " | Modell: " + this.settings.model + " | Prompt: analyse-v1"
-    ];
-    return kopf.concat(zeilen).join("\n");
-  }
-
-  private setzeBlock(editor: Editor, block: string) {
-    const lines = editor.getValue().split("\n");
-    let start = -1;
-    for (let i = lines.length - 1; i >= 0; i = i - 1) {
-      if (lines[i].trim() === MARKER) { start = i; break; }
-    }
-    if (start === -1) {
-      const last = editor.lastLine();
-      const len = editor.getLine(last).length;
-      editor.replaceRange("\n\n" + block, { line: last, ch: len });
-      return;
-    }
-    let end = start;
-    for (let i = start + 1; i < lines.length; i = i + 1) {
-      const l = lines[i].trim();
-      if (l.length === 0 || l.slice(0, 1) === ">" || l.slice(0, 2) === "%%") { end = i; } else { break; }
-    }
-    if (end >= lines.length - 1) {
-      editor.replaceRange(block, { line: start, ch: 0 }, { line: lines.length - 1, ch: lines[lines.length - 1].length });
-    } else {
-      editor.replaceRange(block, { line: start, ch: 0 }, { line: end + 1, ch: 0 });
-    }
-  }
-
-  async verankern(editor: Editor | null) {
-    if (!editor) { new Notice("Ariadne: Keine Notiz im Fokus."); return; }
-    const text = editor.getValue();
-    if (this.krisencheck(text)) {
-      this.setzeBlock(editor, [
-        MARKER,
-        "> [!warning] Grenze erreicht",
-        "> Ariadne erkennt ein akutes Krisensignal in dieser Notiz und beendet die Auswertung hier.",
-        "> Telefonseelsorge: 0800 111 0 111 oder 0800 111 0 222 (rund um die Uhr, kostenlos, anonym). Im akuten Notfall: 112.",
-        "> Ariadne ist Werkzeug, nicht Therapie. Bitte hol dir Unterstuetzung."
-      ].join("\n"));
-      new Notice("Ariadne: Krisensignal erkannt - Analyse beendet.");
-      return;
-    }
-    const parts: string[] = [ANALYSE_PROMPT];
-    if (this.settings.kontextEinbeziehen) {
-      const kontext = await this.kontextBilden();
-      if (kontext.length > 0) {
-        parts.push("KONTEXT AUS FREIGEGEBENEN NOTIZEN (Hintergrund):");
-        parts.push(kontext);
-      }
-    }
-    parts.push("AKTUELLE NOTIZ:");
-    parts.push(text);
-    const prompt = parts.join("\n\n");
-    const n = new Notice("Ariadne analysiert ...");
-    try {
-      const antwort = await this.ollamaChat(prompt);
-      n.hide();
-      this.setzeBlock(editor, this.baueBlock(antwort));
-      new Notice("Ariadne: Analyse verankert.");
-    } catch (e) {
-      n.hide();
-      new Notice("Ariadne: Endpunkt nicht erreichbar oder Fehler - " + (e && e.message ? e.message : "unbekannt"));
     }
   }
 

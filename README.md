@@ -1,17 +1,16 @@
 # Ariadne
 
-Evidenzbasiertes Journaling als Obsidian-Plugin. Plugin First: Alle Nutzeraktionen laufen ueber das Plugin, keine vault-seitigen Vorlagen-Workarounds. Alles laeuft lokal gegen Ollama (oder einen anderen OpenAI-kompatiblen Endpunkt). Der Vault ist die alleinige Wahrheit. Ariadne ist Werkzeug, nicht Therapie.
+Evidenzbasiertes Journaling als Obsidian-Plugin. Plugin First: Alle Nutzeraktionen laufen ueber das Plugin. Der Vault ist die alleinige Wahrheit. Ariadne ist Werkzeug, nicht Therapie.
 
-## Features (v0.3)
+## Features (v0.4)
 
-- Ribbon-Button (Faden-Symbol) mit Menue: Neuer Journal-Eintrag, Markierung, Analyse, Reflexion, Chat-Platzhalter
-- Neuer Journal-Eintrag: Modal mit optionalem Titel, vier Slidern (Valenz, Aktivierung, Belastung, Koerper, 0 bis 10), Kontext-Kacheln (Lehre, Forschung, Admin, Sport, Sozial, Familie, Allein) und Ausnahme-Schalter. Legt eintraege/JJJJ-MM-TT-HHmm.md als journal an (Datum und Uhrzeit), gibt ihn sofort frei und oeffnet ihn zum Schreiben. Mehrere Eintraege pro Tag sind erlaubt. Ordner werden automatisch angelegt.
-- Ariadne markieren: Notiz per Frontmatter-Flag freigeben, mit Typ-Auswahl als Klartext-Liste mit Beschreibung (journal, impuls, order-log, ttrpg, meeting, hobby, reflexion)
-- Analyse verankern: Analyse der aktuellen Notiz durch das lokale Modell, Ergebnis als versionierter Callout. Optional fliesst der Kontext freigegebener Notizen (inklusive Slider-Werten) ein. Braucht den Endpunkt.
-- Reflektieren: fortschreitender Pfad evidenzbasierter Schreibuebungen (Pennebaker-Episode in drei Schritten, Nuclear Episodes). Ohne Modell aufrufbar.
-- Chat mit dem lokalen Modell: als Menue-Eintrag sichtbar, Funktion folgt als M4.
+- Ribbon-Button (Faden-Symbol) mit Menue: Neuer Journal-Eintrag, taggen, Reflektieren, Chat-Platzhalter
+- Neuer Journal-Eintrag mit Stimmungserfassung: optionaler Titel, vier Slider (Valenz, Aktivierung, Belastung, Koerper, 0 bis 10), Kontext-Kacheln (Lehre, Forschung, Admin, Sport, Sozial, Familie, Allein), Ausnahme-Schalter. Legt eintraege/JJJJ-MM-TT-HHmm.md an (Datum und Uhrzeit), taggt als journal und oeffnet die Notiz zum Schreiben. Mehrere Eintraege pro Tag, Ordner werden automatisch angelegt. Komplett offline.
+- Notiz taggen: Bestehende Notiz per Frontmatter-Flag freigeben, Typ-Auswahl als Klartext-Liste (journal, impuls, order-log, ttrpg, meeting, hobby, reflexion). Getaggte Notizen bilden den spaeteren Chat-Kontext.
+- Reflektieren: gefuehrter Pfad evidenzbasierter Schreibuebungen (Pennebaker-Episode in drei Schritten, Nuclear Episodes). Ohne Modell, komplett offline.
+- Mit Ariadne sprechen (M4, folgt): Chat ueber alle getaggten Notizen desselben Vaults gegen das lokale Modell. Fragen wie "Welche Muster deckst du auf?" oder "Was hat die letzten vier Wochen Kraft gegeben?" werden dann gestellt und beantwortet; Erkenntnisse lassen sich als Callout in einer Notiz verankern.
 
-Nur zwei Pfade rufen ein Modell auf: Analyse verankern und (spaeter) der Chat. Alles andere ist rein lokal.
+Aktuell ruft keine Funktion ein Modell auf. Der Chat (M4) wird der einzige Modellpfad; eine Analyse pro Einzelnotiz gibt es bewusst nicht mehr.
 
 ## Installation (BRAT)
 
@@ -22,6 +21,10 @@ Nur zwei Pfade rufen ein Modell auf: Analyse verankern und (spaeter) der Chat. A
 Voraussetzung ist ein GitHub-Release mit main.js, manifest.json und styles.css. Die Release-Action erstellt es automatisch, sobald die Versionsnummer in der manifest.json erhoeht und auf main gepusht wird.
 
 ## Setup
+
+Bis M4 ist kein Modell noetig: Journal-Eintrage, Taggen und Reflexion laufen komplett offline.
+
+Ab M4 (Chat):
 
 1. Ollama installieren, Modell ziehen:
 
@@ -35,7 +38,7 @@ Voraussetzung ist ein GitHub-Release mit main.js, manifest.json und styles.css. 
 
    Danach daemon-reload und Ollama neustarten. OLLAMA_HOST=0.0.0.0 nur fuer Heim-LAN-Nutzung (mobil), niemals ins Internet freigeben.
 
-3. Ariadne-Einstellungen: Endpunkt (Standard http://127.0.0.1:11434, mobil http://RECHNER-IP:11434), Modell, Temperatur, Kontext.
+3. Ariadne-Einstellungen: Endpunkt (Standard http://127.0.0.1:11434, mobil http://RECHNER-IP:11434), Modell, Temperatur, Chat-Kontext.
 
 ## Frontmatter-Schema
 
@@ -46,13 +49,13 @@ Freigabe und Typ pro Notiz:
     ariadne: true
     ---
 
-Typen mit Klartext: journal (Tages- und Abendreflexion mit Slider-Abfrage), impuls (situativer Eintrag unterwegs), meeting (Uni- oder Dienstsitzung), order-log (Log fuer das Order-Projekt), ttrpg (Rollenspiel), hobby (andere Freizeit), reflexion (gefuhrte Schreibpfade). Nur Notizen mit ariadne: true im selben Vault fließen in Analysen ein.
+Typen mit Klartext: journal (Tages- und Abendreflexion mit Stimmungserfassung), impuls (situativer Eintrag unterwegs), meeting (Uni- oder Dienstsitzung), order-log (Log fuer das Order-Projekt), ttrpg (Rollenspiel), hobby (andere Freizeit), reflexion (gefuhrte Schreibpfade). Nur Notizen mit ariadne: true im selben Vault bilden den Chat-Kontext.
 
 Journal-Eintraege tragen zusaetzlich: datum, uhrzeit, valence, arousal, belastung, koerper (0 bis 10), kontexte (Liste, z.B. [Lehre, Sport]), ausnahme (true/false) und zustand: gesprochen.
 
 ## Die Mauer: Trennung privat und Uni
 
-Ariadne wertet pro Vault aus. Die Freigabe gilt nur innerhalb des Vaults, in dem sie gesetzt wurde. Ariadne kopiert oder verschiebt niemals automatisch Notizen zwischen Vaults. Rohnotizen wandern nie ueber die Grenze; nur die verankerten Analyse-Callouts sind portabel. Uni-Daten (Meeting-Recaps) leben im Uni-Vault, Private im Privat-Vault.
+Ariadne arbeitet pro Vault. Das Tag gilt nur innerhalb des Vaults, in dem es gesetzt wurde. Ariadne kopiert oder verschiebt niemals automatisch Notizen zwischen Vaults. Rohnotizen wandern nie ueber die Grenze; nur verankerte Erkenntnis-Callouts sind portabel. Uni-Daten (Meeting-Recaps) leben im Uni-Vault, Private im Privat-Vault.
 
 ## Reflexionspfad und Evidenz
 
@@ -60,20 +63,17 @@ Zwei Protokolle: die Pennebaker-Episode (drei Schritte: Fakten, Gefuehle und Koe
 
 ## Datenschutz und Grenzen
 
-- Anfragen gehen ausschliesslich an den in den Einstellungen konfigurierten Endpunkt. Keine Cloud-Defaults, keine Telemetrie.
-- Freigegebene Notizen verlassen das Geraet nur in Richtung dieses Endpunkts.
-- Krisensignale: Vor jeder Analyse prueft Ariadne den Text gegen eine Liste akuter Begriffe. Bei Treffer bricht die Analyse ab und es wird ein Hinweisblock mit der Telefonseelsorge (0800 111 0 111, 0800 111 0 222) verankert. Im akuten Notfall gilt 112.
+- Ab M4 gehen Anfragen ausschliesslich an den in den Einstellungen konfigurierten Endpunkt. Keine Cloud-Defaults, keine Telemetrie.
+- Getaggte Notizen verlassen das Geraet nur in Richtung dieses Endpunkts.
+- Krisensignale: Der Chat (M4) prueft jede Anfrage gegen eine Liste akuter Begriffe und verweist bei Treffern auf die Telefonseelsorge (0800 111 0 111, 0800 111 0 222). Im akuten Notfall gilt 112.
 
-## Manuelle Pruefliste (v0.3)
+## Manuelle Pruefliste (v0.4)
 
 - [ ] Ribbon oeffnet das Menue
-- [ ] Der Journal-Eintrag legt eintraege/YYYY-MM-DD-HHmm.md an, auch wenn der Ordner noch fehlte
+- [ ] Der Journal-Eintrag legt eintraege/YYYY-MM-DD-HHmm.md an, auch wenn der Ordner fehlte
 - [ ] Mehrere Journal-Eintraege am selben Tag sind moeglich
 - [ ] Die Typ-Auswahl zeigt Klartext-Beschreibungen
-- [ ] Markierung setzt ariadne: true und typ
-- [ ] Analyse verankert den Callout; ein erneuter Lauf ersetzt ihn statt zu duplizieren
-- [ ] Der Kontext enthaelt nur freigegebene Notizen desselben Vaults
-- [ ] Ein Krisenterm loest den Hinweisblock aus
+- [ ] Taggen setzt ariadne: true und typ
 - [ ] Eine Reflexionssitzung legt eine Notiz unter reflexionen/ an
 - [ ] Die Release-Action erstellt das Release bei Versionsbump automatisch
 

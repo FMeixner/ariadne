@@ -1,6 +1,6 @@
 {
   "name": "ariadne",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Ariadne - evidenzbasiertes Journaling fuer Obsidian",
   "main": "main.js",
   "scripts": {
