@@ -1,7 +1,7 @@
 {
   "id": "ariadne",
   "name": "Ariadne",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "minAppVersion": "1.4.0",
   "description": "Evidenzbasiertes Journaling: Journal-Eintraege mit Stimmungserfassung, Taggen, Reflexionspfad. Alles lokal, Chat folgt als M4.",
   "author": "Friedrich Meixner",

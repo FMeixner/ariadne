@@ -71,7 +71,8 @@ const PROTOKOLLE: ReflexionsProtokoll[] = [
     schritte: [
       {
         titel: "Fakten",
-        anleitung: [
+      
+  anleitung: [
           "Waehle EINE konkrete Episode der letzten sieben Tage.",
           "Schreibe 15 bis 20 Minuten nur darueber, was tatsaechlich passiert ist: Ort, Beteiligte, Ablauf, Deine Handlungen. Keine Bewertung, keine Deutung. Eine Faktenlage wie ein Protokoll."
         ]
@@ -119,16 +120,21 @@ interface JournalDaten {
 }
 
 class TypModal extends Modal {
-  constructor(app: App, private onChoose: (typ: string) => void) {
+  private stimmungErfassen: boolean = false;
+
+  constructor(app: App, private onChoose: (typ: string, stimmungErfassen: boolean) => void) {
     super(app);
   }
 
   onOpen() {
     this.contentEl.createEl("h3", { text: "Notiz taggen" });
-    this.contentEl.createEl("p", { text: "Welcher Art ist diese Notiz? Der Typ ordnet sie fuer den spaeteren Chat ein." });
+    this.contentEl.cr
+eateEl("p", { text: "Welcher Art ist diese Notiz? Der Typ ordnet sie fuer den spaeteren Chat ein." });
+    new Setting(this.contentEl).setName("Stimmung miterfassen").setDesc("Nach der Typ-Wahl erscheinen die Stimmungsslider. Die Werte werden als Chiffre-Kommentar an der Cursor-Position eingefuegt, in der Lesansicht unsichtbar.")
+      .addToggle((s) => s.setValue(false).onChange((v) => { this.stimmungErfassen = v; }));
     for (const t of TYPEN) {
       new Setting(this.contentEl).setName(t).setDesc(TYP_TEXT[t])
-        .addButton((b) => b.setButtonText("Waehlen").onClick(() => { this.onChoose(t); this.close(); }));
+        .addButton((b) => b.setButtonText("Waehlen").onClick(() => { this.onChoose(t, this.stimmungErfassen); this.close(); }));
     }
   }
 }
@@ -136,7 +142,7 @@ class TypModal extends Modal {
 class JournalModal extends Modal {
   private daten: JournalDaten = { titel: "", valence: 5, arousal: 5, belastung: 5, koerper: 5, kontexte: [], ausnahme: false };
 
-  constructor(app: App, private onFertig: (d: JournalDaten) => void) {
+  constructor(app: App, private onFertig: (d: JournalDaten) => void, private nachtrag: boolean) {
     super(app);
   }
 
@@ -158,13 +164,16 @@ class JournalModal extends Modal {
 
   onOpen() {
     const c = this.contentEl;
-    c.createEl("h3", { text: "Neuer Journal-Eintrag" });
-    c.createEl("p", { text: "Stimmung erfassen, Kontexte waehlen, dann schreiben. Der Eintrag landet unter eintraege/, ist sofort getaggt und offen zum Diktieren. Mehrere pro Tag sind erlaubt." });
-    new Setting(c).setName("Titel (optional)").addText((t) => t.setPlaceholder("z.B. Nach der Lehre").onChange((v) => { this.daten.titel = v; }));
+    c.createEl("h3", { text: this.nachtrag ? "Stimmung an dieser Stelle erfassen" : "Neuer Journal-Eintrag" });
+    c.createEl("p", { text: this.nachtrag ? "Stimmung erfassen, Kontexte waehlen, dann einfuegen. Die Chiffre landet an der Cursor-Position, die Zeile darunter ist bereit zum Diktieren. In der Lesansicht bleibt alles unsichtbar." : "Stimmung erfassen, Kontexte waehlen, dann schreiben. Der Eintrag landet unter eintraege/, ist sofort getaggt und offen zum Diktieren. Mehrere pro Tag sind erlaubt." });
+    if (!this.nachtrag) {
+      new Setting(c).setName("Titel (optional)").addText((t) => t.setPlaceholder("z.B. Nach der Lehre").onChange((v) => { this.daten.titel = v; }));
+    }
     this.baueSlider(c, "Valenz", "0 unangenehm, 10 angenehm", (n) => { this.daten.valence = n; });
     this.baueSlider(c, "Aktivierung", "0 ruhig, 10 aktiviert", (n) => { this.daten.arousal = n; });
     this.baueSlider(c, "Belastung", "0 entspannt, 10 angespannt", (n) => { this.daten.belastung = n; });
-    this.baueSlider(c, "Koerper", "0 verspannt, 10 frei", (n) => { this.daten.koerper = n; });
+    this.baueSlider(c, "Koerper", "0 verspannt, 10 frei", (n) =
+> { this.daten.koerper = n; });
     c.createEl("p", { text: "Kontexte heute (Mehrfachwahl)" });
     const kacheln = c.createEl("div", { cls: "ariadne-kacheln" });
     for (const k of KONTEXTE) {
@@ -179,7 +188,7 @@ class JournalModal extends Modal {
     new Setting(c).setName("Ausnahme-Ereignis").setDesc("Etwas Aussergewoehnliches ist passiert.")
       .addToggle((t) => t.setValue(false).onChange((v) => { this.daten.ausnahme = v; }));
     new Setting(c)
-      .addButton((b) => b.setButtonText("Eintrag anlegen").setCta().onClick(() => { this.onFertig(this.daten); this.close(); }))
+      .addButton((b) => b.setButtonText(this.nachtrag ? "Chiffre einfuegen" : "Eintrag anlegen").setCta().onClick(() => { this.onFertig(this.daten); this.close(); }))
       .addButton((b) => b.setButtonText("Abbrechen").onClick(() => this.close()));
   }
 }
@@ -199,7 +208,8 @@ class ReflexionModal extends Modal {
     this.contentEl.createEl("p", { text: "Nimm dir die Zeit in Ruhe. Ein Schritt pro Tag, nicht mehr." });
     new Setting(this.contentEl)
       .addButton((b) => b.setButtonText("Sitzung starten").setCta().onClick(async () => { await this.plugin.starteSitzung(this.protokoll, this.idx); this.close(); }))
-      .addButton((b) => b.setButtonText("Schritt abschliessen").onClick(async () => { await this.plugin.schrittAbschliessen(this.protokoll, this.idx); this.close(); }));
+      .addButton((b) => b.setButtonText("Schritt abschliessen").onClick(async () => { await this.plugin.schrittAbschliessen(this.protokoll, this.
+idx); this.close(); }));
   }
 }
 
@@ -229,7 +239,8 @@ class AriadneSettingTab extends PluginSettingTab {
         .onChange(async (v) => { const n = parseInt(v, 10); this.plugin.settings.kontextAnzahl = isNaN(n) ? 8 : n; await this.plugin.saveSettings(); }));
     const drop = new Setting(c).setName("Reflexionsprotokoll").setDesc("Der Pfad, den Reflektieren weiterfuehrt.");
     drop.addDropdown((d) => {
-      for (const p of PROTOKOLLE) { d.addOption(p.id, p.name); }
+      for (const p of PROTOKOLLE) {
+ d.addOption(p.id, p.name); }
       d.setValue(this.plugin.settings.protokoll)
         .onChange(async (v) => { this.plugin.settings.protokoll = v; this.plugin.settings.schritt = 0; await this.plugin.saveSettings(); this.display(); });
     });
@@ -246,10 +257,12 @@ export default class AriadnePlugin extends Plugin {
     this.addRibbonIcon("git-branch", "Ariadne", (evt: MouseEvent) => this.oeffneMenue(evt));
     this.addCommand({ id: "ariadne-journal", name: "Ariadne: Neuer Journal-Eintrag mit Stimmungserfassung", callback: () => this.oeffneJournalEintrag() });
     this.addCommand({ id: "ariadne-markierung", name: "Ariadne: Notiz taggen", callback: () => this.toggleMarkierung() });
+    this.addCommand({ id: "ariadne-stimmung", name: "Ariadne: Stimmung an dieser Stelle erfassen", callback: () => this.oeffneStimmungErfassung() });
     this.addCommand({ id: "ariadne-reflektieren", name: "Ariadne: Reflektieren - naechster Schritt", callback: () => this.reflektieren() });
     this.registerEvent(this.app.workspace.on("editor-menu", (menu: Menu) => {
       menu.addSeparator();
       menu.addItem((i) => i.setTitle("Ariadne: taggen").setIcon("bookmark").onClick(() => this.toggleMarkierung()));
+      menu.addItem((i) => i.setTitle("Ariadne: Stimmung hier erfassen").setIcon("heart-pulse").onClick(() => this.oeffneStimmungErfassung()));
       menu.addItem((i) => i.setTitle("Ariadne: Reflektieren").setIcon("footprints").onClick(() => this.reflektieren()));
     }));
     this.addSettingTab(new AriadneSettingTab(this.app, this));
@@ -262,8 +275,10 @@ export default class AriadnePlugin extends Plugin {
   private oeffneMenue(evt: MouseEvent) {
     const menu = new Menu();
     menu.addItem((i) => i.setTitle("Neuer Journal-Eintrag mit Stimmungserfassung").setIcon("activity").onClick(() => this.oeffneJournalEintrag()));
-    menu.addSeparator();
+    menu.addSeparator()
+;
     menu.addItem((i) => i.setTitle("Notiz taggen").setIcon("bookmark").onClick(() => this.toggleMarkierung()));
+    menu.addItem((i) => i.setTitle("Stimmung an dieser Stelle erfassen").setIcon("heart-pulse").onClick(() => this.oeffneStimmungErfassung()));
     menu.addItem((i) => i.setTitle("Reflektieren - naechster Schritt").setIcon("footprints").onClick(() => this.reflektieren()));
     menu.addSeparator();
     menu.addItem((i) => i.setTitle("Mit Ariadne sprechen (folgt)").setIcon("message-circle").onClick(() => new Notice("Ariadne: Der Chat ueber alle getaggten Notizen folgt als M4. Fragen wie 'Welche Muster deckst du auf?' oder 'Was hat Kraft gegeben?' werden dann moeglich.")));
@@ -271,7 +286,12 @@ export default class AriadnePlugin extends Plugin {
   }
 
   oeffneJournalEintrag() {
-    new JournalModal(this.app, async (d: JournalDaten) => { await this.erstelleJournalEintrag(d); }).open();
+    new JournalModal(this.app, async (d: JournalDaten) => { await this.erstelleJournalEintrag(d); }, false).open();
+  }
+
+  oeffneStimmungErfassung() {
+    const view = this.app.workspace.getActiveViewOfType(MarkdownView);
+    new JournalModal(this.app, async (d: JournalDaten) => { await this.fuegeStimmungEin(view, d); }, true).open();
   }
 
   private async sichererOrdner(pfad: string) {
@@ -306,7 +326,8 @@ export default class AriadnePlugin extends Plugin {
       "valence: " + String(d.valence),
       "arousal: " + String(d.arousal),
       "belastung: " + String(d.belastung),
-      "koerper: " + String(d.koerper),
+      "ko
+erper: " + String(d.koerper),
       "kontexte: " + kontexte,
       "ausnahme: " + (d.ausnahme ? "true" : "false"),
       "---",
@@ -336,6 +357,32 @@ export default class AriadnePlugin extends Plugin {
     }
   }
 
+  async fuegeStimmungEin(view: MarkdownView | null, d: JournalDaten) {
+    if (!view || !view.editor) {
+      new Notice("Ariadne: Keine offene Notiz - Stimmung kann nicht eingefuegt werden.");
+      return;
+    }
+    const zeit = moment().format("YYYY-MM-DD HH:mm");
+    const teile: string[] = [
+      "%%ariadne-stimmung " + zeit,
+      "v=" + String(d.valence),
+      "a=" + String(d.arousal),
+      "b=" + String(d.belastung),
+      "k=" + String(d.koerper)
+    ];
+    if (d.kontexte.length > 0) {
+      teile.push("kontexte=" + d.kontexte.join(","));
+    }
+    if (d.ausnahme) {
+      teile.push("ausnahme=true");
+    }
+    const chiffre = teile.join(" ") + "%%";
+    const editor = view.editor;
+    const pos = editor.getCursor();
+    editor.replaceSelection((pos.ch > 0 ? "\n" : "") + chiffre + "\n");
+    new Notice("Ariadne: Stimmung als Chiffre eingefuegt (Lesansicht zeigt sie nicht).");
+  }
+
   private frontmatterVon(file: TFile): any {
     const cache = this.app.metadataCache.getFileCache(file);
     if (cache && cache.frontmatter) { return cache.frontmatter; }
@@ -357,9 +404,12 @@ export default class AriadnePlugin extends Plugin {
       await this.app.fileManager.processFrontMatter(file, (f: any) => { f["ariadne"] = true; });
       new Notice("Ariadne: Notiz getaggt (typ: " + String(typ) + ").");
     } else {
-      new TypModal(this.app, async (t: string) => {
+      new TypModal(this.app, async (t: string, stimmungErfassen: boolean) => {
         await this.app.fileManager.processFrontMatter(file, (f: any) => { f["ariadne"] = true; f["typ"] = t; });
         new Notice("Ariadne: Notiz getaggt als " + t + ".");
+        if (stimmungErfassen) {
+          new JournalModal(this.app, async (d: JournalDaten) => { await this.fuegeStimmungEin(view, d); }, true).open();
+        }
       }).open();
     }
   }
