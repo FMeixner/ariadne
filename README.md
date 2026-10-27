@@ -23,8 +23,7 @@ Voraussetzung ist ein GitHub-Release mit main.js, manifest.json und styles.css. 
 
 ## Setup
 
-Bis M4 ist kein Modell noetig: Journal-Eintrage, Taggen und Reflexio
-n laufen komplett offline.
+Bis M4 ist kein Modell noetig: Journal-Eintrage, Taggen und Reflexion laufen komplett offline.
 
 Ab M4 (Chat):
 
@@ -63,8 +62,7 @@ Ariadne arbeitet pro Vault. Das Tag gilt nur innerhalb des Vaults, in dem es ges
 
 ## Reflexionspfad und Evidenz
 
-Zwei Protokolle: die Pennebaker-Episode (drei Schritte: Fakten, Gefuehle und Koerper, Verknuepfung und Perspektive; je 15 bis 20 Minuten an aufeinanderfolgenden Tagen) und Nuclear Episodes (praegende Wendepunkte, 20 bis 30 Minuten). Die Dosierung folgt dem Standard expressiven Schreibens: kleine, ab
-er robuste Effekte unter genau diesem Format (Frattaroli, 2006). Die Kombination Fakten plus Gefuehle ist der staerkste Moderator. Replicationen fallen kleiner aus (Morisano et al., 2010; spaetere Replicationen gegen null), deshalb gilt: der Pfad ist eine Uebung mit Chance auf Erkenntnis, keine Garantie. Ariadne ist Werkzeug, nicht Therapie.
+Zwei Protokolle: die Pennebaker-Episode (drei Schritte: Fakten, Gefuehle und Koerper, Verknuepfung und Perspektive; je 15 bis 20 Minuten an aufeinanderfolgenden Tagen) und Nuclear Episodes (praegende Wendepunkte, 20 bis 30 Minuten). Die Dosierung folgt dem Standard expressiven Schreibens: kleine, aber robuste Effekte unter genau diesem Format (Frattaroli, 2006). Die Kombination Fakten plus Gefuehle ist der staerkste Moderator. Replicationen fallen kleiner aus (Morisano et al., 2010; spaetere Replicationen gegen null), deshalb gilt: der Pfad ist eine Uebung mit Chance auf Erkenntnis, keine Garantie. Ariadne ist Werkzeug, nicht Therapie.
 
 ## Datenschutz und Grenzen
 

@@ -71,8 +71,7 @@ const PROTOKOLLE: ReflexionsProtokoll[] = [
     schritte: [
       {
         titel: "Fakten",
-      
-  anleitung: [
+        anleitung: [
           "Waehle EINE konkrete Episode der letzten sieben Tage.",
           "Schreibe 15 bis 20 Minuten nur darueber, was tatsaechlich passiert ist: Ort, Beteiligte, Ablauf, Deine Handlungen. Keine Bewertung, keine Deutung. Eine Faktenlage wie ein Protokoll."
         ]
@@ -128,8 +127,7 @@ class TypModal extends Modal {
 
   onOpen() {
     this.contentEl.createEl("h3", { text: "Notiz taggen" });
-    this.contentEl.cr
-eateEl("p", { text: "Welcher Art ist diese Notiz? Der Typ ordnet sie fuer den spaeteren Chat ein." });
+    this.contentEl.createEl("p", { text: "Welcher Art ist diese Notiz? Der Typ ordnet sie fuer den spaeteren Chat ein." });
     new Setting(this.contentEl).setName("Stimmung miterfassen").setDesc("Nach der Typ-Wahl erscheinen die Stimmungsslider. Die Werte werden als Chiffre-Kommentar an der Cursor-Position eingefuegt, in der Lesansicht unsichtbar.")
       .addToggle((s) => s.setValue(false).onChange((v) => { this.stimmungErfassen = v; }));
     for (const t of TYPEN) {
@@ -172,8 +170,7 @@ class JournalModal extends Modal {
     this.baueSlider(c, "Valenz", "0 unangenehm, 10 angenehm", (n) => { this.daten.valence = n; });
     this.baueSlider(c, "Aktivierung", "0 ruhig, 10 aktiviert", (n) => { this.daten.arousal = n; });
     this.baueSlider(c, "Belastung", "0 entspannt, 10 angespannt", (n) => { this.daten.belastung = n; });
-    this.baueSlider(c, "Koerper", "0 verspannt, 10 frei", (n) =
-> { this.daten.koerper = n; });
+    this.baueSlider(c, "Koerper", "0 verspannt, 10 frei", (n) => { this.daten.koerper = n; });
     c.createEl("p", { text: "Kontexte heute (Mehrfachwahl)" });
     const kacheln = c.createEl("div", { cls: "ariadne-kacheln" });
     for (const k of KONTEXTE) {
@@ -208,8 +205,7 @@ class ReflexionModal extends Modal {
     this.contentEl.createEl("p", { text: "Nimm dir die Zeit in Ruhe. Ein Schritt pro Tag, nicht mehr." });
     new Setting(this.contentEl)
       .addButton((b) => b.setButtonText("Sitzung starten").setCta().onClick(async () => { await this.plugin.starteSitzung(this.protokoll, this.idx); this.close(); }))
-      .addButton((b) => b.setButtonText("Schritt abschliessen").onClick(async () => { await this.plugin.schrittAbschliessen(this.protokoll, this.
-idx); this.close(); }));
+      .addButton((b) => b.setButtonText("Schritt abschliessen").onClick(async () => { await this.plugin.schrittAbschliessen(this.protokoll, this.idx); this.close(); }));
   }
 }
 
@@ -239,8 +235,7 @@ class AriadneSettingTab extends PluginSettingTab {
         .onChange(async (v) => { const n = parseInt(v, 10); this.plugin.settings.kontextAnzahl = isNaN(n) ? 8 : n; await this.plugin.saveSettings(); }));
     const drop = new Setting(c).setName("Reflexionsprotokoll").setDesc("Der Pfad, den Reflektieren weiterfuehrt.");
     drop.addDropdown((d) => {
-      for (const p of PROTOKOLLE) {
- d.addOption(p.id, p.name); }
+      for (const p of PROTOKOLLE) { d.addOption(p.id, p.name); }
       d.setValue(this.plugin.settings.protokoll)
         .onChange(async (v) => { this.plugin.settings.protokoll = v; this.plugin.settings.schritt = 0; await this.plugin.saveSettings(); this.display(); });
     });
@@ -275,8 +270,7 @@ export default class AriadnePlugin extends Plugin {
   private oeffneMenue(evt: MouseEvent) {
     const menu = new Menu();
     menu.addItem((i) => i.setTitle("Neuer Journal-Eintrag mit Stimmungserfassung").setIcon("activity").onClick(() => this.oeffneJournalEintrag()));
-    menu.addSeparator()
-;
+    menu.addSeparator();
     menu.addItem((i) => i.setTitle("Notiz taggen").setIcon("bookmark").onClick(() => this.toggleMarkierung()));
     menu.addItem((i) => i.setTitle("Stimmung an dieser Stelle erfassen").setIcon("heart-pulse").onClick(() => this.oeffneStimmungErfassung()));
     menu.addItem((i) => i.setTitle("Reflektieren - naechster Schritt").setIcon("footprints").onClick(() => this.reflektieren()));
@@ -326,8 +320,7 @@ export default class AriadnePlugin extends Plugin {
       "valence: " + String(d.valence),
       "arousal: " + String(d.arousal),
       "belastung: " + String(d.belastung),
-      "ko
-erper: " + String(d.koerper),
+      "koerper: " + String(d.koerper),
       "kontexte: " + kontexte,
       "ausnahme: " + (d.ausnahme ? "true" : "false"),
       "---",
